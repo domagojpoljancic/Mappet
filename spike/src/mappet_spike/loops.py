@@ -411,9 +411,13 @@ def _generate_random_walk(
     seen: set[str],
     quota: int,
 ) -> int:
-    """Pleasantness-biased walk; home when length budget is nearly spent."""
+    """Pleasantness-biased walk that homes when projected length enters [lo, hi].
+
+    At each step prefer edges that keep (spent + edge + return_home) near the
+    target. Close as soon as the projected length falls inside tolerance.
+    """
     attempts = 0
-    max_attempts = max(quota * 20, 400)
+    max_attempts = max(quota * 25, 500)
     limit = len(loops) + quota
     try:
         return_dist = nx.single_source_dijkstra_path_length(
@@ -427,49 +431,65 @@ def _generate_random_walk(
         path = [origin_node]
         length = 0.0
         visited_edges: set[tuple[Any, Any]] = set()
-        steps = 0
         closed = False
-        outbound_budget = target_m * rng.uniform(0.45, 0.70)
 
-        while steps < 500:
-            steps += 1
+        for _step in range(600):
             cur = path[-1]
             back = float(return_dist.get(cur, float("inf")))
 
-            if length >= outbound_budget and back < float("inf"):
-                projected = length + back
-                if lo <= projected <= hi:
-                    home = _shortest_path_weighted(g, cur, origin_node, weight="length")
-                    if home and len(home) >= 2:
-                        path.extend(home[1:])
-                        length = _path_length_m(g, path)
-                        closed = True
-                        break
-                if projected > hi:
+            # Close as soon as going home lands in the tolerance band.
+            if (
+                cur != origin_node
+                and back < float("inf")
+                and lo <= length + back <= hi
+                and length >= lo * 0.35
+            ):
+                home = _shortest_path_weighted(g, cur, origin_node, weight="length")
+                if home and len(home) >= 2:
+                    path.extend(home[1:])
+                    closed = True
                     break
 
-            neighbors = []
+            # Already too long even if we teleport home — abort.
+            if back < float("inf") and length + back > hi and length > target_m * 0.3:
+                break
+
+            candidates = []
             for nbr in g.neighbors(cur):
-                if nbr == origin_node and length < outbound_budget * 0.8:
+                if nbr == origin_node and length < lo * 0.4:
                     continue
                 edge_key = (cur, nbr) if cur <= nbr else (nbr, cur)
-                if edge_key in visited_edges and rng.random() > 0.2:
-                    continue
+                revisit_pen = 0.15 if edge_key in visited_edges else 1.0
                 edges = g.get_edge_data(cur, nbr) or {}
                 best = min(edges.values(), key=lambda d: float(d.get("weight", 1.0)))
                 elen = float(best.get("length") or 1.0)
                 pleasant = float(best.get("pleasantness") or 0.55)
-                score = (pleasant ** 2) * (1.0 + rng.random() * 0.3) / max(elen, 1.0)
-                nbr_back = float(return_dist.get(nbr, target_m))
-                if length + elen + nbr_back > hi:
-                    score *= 0.02
-                neighbors.append((nbr, elen, edge_key, score))
+                nbr_back = float(return_dist.get(nbr, float("inf")))
+                if nbr_back == float("inf"):
+                    continue
+                projected = length + elen + nbr_back
+                # How close is projected length to the target?
+                err = abs(projected - target_m) / target_m
+                if projected > hi * 1.05:
+                    continue
+                # Score: prefer near-target projection + pleasant edges.
+                score = (pleasant ** 1.5) * revisit_pen / (0.15 + err)
+                # Bonus if taking this edge would let us close immediately after.
+                if lo <= projected <= hi:
+                    score *= 3.0
+                candidates.append((nbr, elen, edge_key, score, projected))
 
-            if not neighbors:
+            if not candidates:
                 break
-            weights = [max(s, 1e-6) for _, _, _, s in neighbors]
-            pick = rng.choices(neighbors, weights=weights, k=1)[0]
-            nbr, elen, edge_key, _ = pick
+
+            # Mostly pick by score; occasionally explore.
+            if rng.random() < 0.15:
+                pick = rng.choice(candidates)
+            else:
+                weights = [max(s, 1e-6) for _, _, _, s, _ in candidates]
+                pick = rng.choices(candidates, weights=weights, k=1)[0]
+
+            nbr, elen, edge_key, _score, _proj = pick
             path.append(nbr)
             length += elen
             visited_edges.add(edge_key)

@@ -83,3 +83,14 @@ def test_mixed_strategies_produce_variety():
     # At least out_back should work on a grid; others are bonus.
     assert "out_back" in strategies
     assert len(loops) >= 15
+
+
+def test_random_walk_contributes_on_grid():
+    g, origin = _grid_graph(n=31)
+    # Wider tolerance + enough quota so projected-length homing can land.
+    loops = generate_loops(g, origin, distance_km=2.0, tolerance=0.30, n=90)
+    by = {}
+    for lp in loops:
+        by[lp.strategy] = by.get(lp.strategy, 0) + 1
+    # Random-walk should contribute at least a few on a dense grid.
+    assert by.get("random_walk", 0) >= 3, f"strategies={by}"

@@ -38,7 +38,7 @@
 | T0.4 Human-eval HTML grid + FINDINGS.md | ✅ Done — **conditional no-go** on recognition quality (see [`spike/FINDINGS.md`](spike/FINDINGS.md)) |
 | T0.5 Geometry filters (compactness/area) | ✅ Done — improves pool, still not human-recognisable |
 | T0.5b Filled silhouette render (`--filled`) | ✅ Done — does not help local CLIP |
-| T0.6 Alternate generators (multi-waypoint + random-walk) | ✅ Done — multi-waypoint live; random-walk still weak; recognition still no-go |
+| T0.6 Alternate generators (multi-waypoint + random-walk) | ✅ Done — all three strategies fill quotas; recognition still no-go |
 | T0.7 Vision-LLM top-N labeling | ⏳ Blocked on API key |
 
 ### Product (planned — not built)

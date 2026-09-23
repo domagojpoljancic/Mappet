@@ -64,7 +64,7 @@ Eyeballing the top-ranked silhouettes (London “bicycle” 0.355, Zagreb “hor
 ## Suggested next spike tickets
 
 - **T0.5** Geometry-aware loop filters — ✅ done (see addendum).
-- **T0.6** Alternate generators (multi-waypoint + random-walk) — ✅ done (multi-waypoint works; random-walk still weak).
+- **T0.6** Alternate generators (multi-waypoint + random-walk) — ✅ done (all three strategies now fill quotas on Zagreb).
 - **T0.7** Vision-LLM captioning on top-N + side-by-side HTML with CLIP.
 - **T0.8** Re-run human eval; only then open Phase 1 (T1.1+).
 
@@ -96,15 +96,15 @@ Top shaped CLIP scores rose slightly (best **0.374**) and a Berlin candidate was
 
 Mixed strategies with reserved quotas:
 
-| Strategy | Zagreb raw count (n≈360 target pool) | Notes |
+| Strategy | Zagreb raw (n=360 pool) | Notes |
 |---|---:|---|
-| `out_back` | 234 | Quiet-biased band fill; still dominates top CLIP |
-| `multi_waypoint` | 120 | Circle waypoints → polygonal circuits; in top-30 but **lower mean compactness** than best out-backs |
-| `random_walk` | 0 | Pleasantness-biased walk rarely lands in ±15% length band — needs more work |
+| `out_back` | 120 | Quiet-biased band fill |
+| `multi_waypoint` | 120 | Circle waypoints → polygonal circuits |
+| `random_walk` | **120** | Fixed: homes when projected length enters ±15% band |
 
-Shape-like after filter: **146 / 354**. Best CLIP still **~0.36**, labels still generic (`horse`/`guitar`/`house`). Multi-waypoint adds variety but does **not** unlock recognisable doodles under local CLIP.
+Shape-like after filter: **127 / 360**. Best CLIP still **~0.36**, labels still generic. All three strategies now contribute; recognition quality under local CLIP is **unchanged** (still conditional no-go).
 
-**Unchanged decision:** conditional no-go for MVP. Next: vision-LLM top-N (needs API key) or tune random-walk length targeting.
+**Unchanged decision:** no MVP yet. Next high-leverage step remains **vision-LLM top-N** (needs API key).
 
 ---
 
