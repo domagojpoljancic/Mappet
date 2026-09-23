@@ -59,9 +59,9 @@ def test_pleasantness_prefers_quiet_over_busy():
 
 
 def test_search_radius_scales_with_distance():
-    assert search_radius_m(0.1) >= 800.0
+    assert search_radius_m(0.1) >= 1000.0
     assert search_radius_m(200.0) <= 25_000.0
     r5 = search_radius_m(5.0)
     r10 = search_radius_m(10.0)
     assert r10 > r5
-    assert abs(r5 - 5000.0 / 3.0) < 1e-6
+    assert abs(r5 - 5000.0 / 2.5) < 1e-6

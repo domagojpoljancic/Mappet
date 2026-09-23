@@ -69,12 +69,12 @@ class BuiltGraph:
 def search_radius_m(distance_km: float) -> float:
     """Generous search radius so a loop of length D fits with headroom.
 
-    A circle of circumference D has radius D/(2π). We use ~D/3 (larger than
-    D/2π) and clamp so tiny/huge targets still fetch a usable bbox.
+    A circle of circumference D has radius D/(2π) ≈ D/6. We fetch ~D/2.5 so
+    out-and-back anchors near D/2 still sit inside the cached graph.
     """
     d_m = distance_km * 1000.0
-    radius = d_m / 3.0
-    return float(max(800.0, min(radius, 25_000.0)))
+    radius = d_m / 2.5
+    return float(max(1000.0, min(radius, 25_000.0)))
 
 
 def _round_coord(value: float, places: int = 3) -> float:
@@ -292,20 +292,26 @@ def build_graph(
 
 
 def nearest_node(graph: nx.MultiDiGraph, lat: float, lng: float) -> Any:
-    """Nearest node to a lat/lng (graph nodes use WGS84 x=lng, y=lat)."""
-    if "crs" not in graph.graph:
-        # Synthetic / fixture graphs may omit CRS — fall back to brute force.
-        best_node = None
-        best_d = float("inf")
-        for node, data in graph.nodes(data=True):
-            d = haversine_m(lat, lng, float(data["y"]), float(data["x"]))
-            if d < best_d:
-                best_d = d
-                best_node = node
-        if best_node is None:
-            raise ValueError("Graph has no nodes")
-        return best_node
-    return ox.distance.nearest_nodes(graph, X=lng, Y=lat)
+    """Nearest node to a lat/lng (graph nodes use WGS84 x=lng, y=lat).
+
+    Uses a local equirectangular distance so we do not need scikit-learn /
+    a projected CRS (OSMnx's `nearest_nodes` requires one of those).
+    """
+    best_node = None
+    best_d2 = float("inf")
+    # Metres-per-degree at this latitude — good enough for nearest-node search.
+    m_lat = 111_320.0
+    m_lng = 111_320.0 * math.cos(math.radians(lat))
+    for node, data in graph.nodes(data=True):
+        dy = (float(data["y"]) - lat) * m_lat
+        dx = (float(data["x"]) - lng) * m_lng
+        d2 = dx * dx + dy * dy
+        if d2 < best_d2:
+            best_d2 = d2
+            best_node = node
+    if best_node is None:
+        raise ValueError("Graph has no nodes")
+    return best_node
 
 
 def haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:

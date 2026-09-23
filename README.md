@@ -32,11 +32,11 @@
 ### Phase 0 spike (`spike/`)
 | Capability | Status |
 |---|---|
-| T0.1 OSM graph builder + disk cache + edge filter | ✅ Implemented (unit tests) |
-| T0.2 Candidate loop generator | ✅ Implemented (unit tests on synthetic grid) |
-| T0.3 Silhouette renderer | ✅ Implemented (deterministic PNG) |
-| T0.3 Local CLIP recognisability | ⏳ In progress (optional `[clip]` extra) |
-| T0.4 Human-eval HTML grid + FINDINGS.md | ⏳ In progress |
+| T0.1 OSM graph builder + disk cache + edge filter | ✅ Done |
+| T0.2 Candidate loop generator (≥100 in dense cities) | ✅ Done |
+| T0.3 Silhouette renderer + local CLIP | ✅ Done |
+| T0.4 Human-eval HTML grid + FINDINGS.md | ✅ Done — **conditional no-go** on recognition quality (see [`spike/FINDINGS.md`](spike/FINDINGS.md)) |
+| T0.5+ geometry filters / vision-LLM top-N | ⏳ Next before Phase 1 MVP |
 
 ### Product (planned — not built)
 | Capability | Status |
