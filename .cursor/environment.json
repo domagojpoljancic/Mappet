@@ -1,0 +1,15 @@
+{
+  "name": "Mappet",
+  "install": "bash scripts/setup.sh",
+  "terminals": [
+    {
+      "name": "engine",
+      "command": "cd services/engine && . .venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    },
+    {
+      "name": "web",
+      "command": "cd apps/web && npm run dev"
+    }
+  ],
+  "ports": [4311, 8000]
+}
