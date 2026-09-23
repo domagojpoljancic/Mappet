@@ -1,5 +1,7 @@
 # Backlog — Mappet (agent-ready tickets)
 
+> ⚠️ **Just a random idea — very far from a product.** These "tickets" are imaginary. No work is planned or in progress; they only illustrate how the idea *might* be broken down if it were ever built.
+
 Each ticket is scoped so an autonomous agent (Cursor **Auto mode**) can pick it up with just: this file's ticket + `PRD.md` + `ARCHITECTURE.md`. Every ticket has **context**, **tasks**, and **acceptance criteria** (the agent should not stop until AC pass, including build + tests).
 
 **Legend:** `[E]` Route Engine (Python) · `[F]` Frontend (Next.js) · `[I]` Infra/glue.

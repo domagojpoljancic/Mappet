@@ -1,14 +1,16 @@
 # Mappet 🏃‍♀️✏️🗺️
 
-> **Mappet** — the GPS doodle-route finder described here.
+> ⚠️ **Just a random idea — nothing more.** This is an early, half-baked brainstorm, **very far from a product** (or a company, a commitment, or a plan anyone is executing). Nothing here has been built, tested, or validated. Treat everything below as a napkin sketch that may never happen.
+
+> **Mappet** — a working name for the GPS doodle-route finder idea described here.
 
 **Mappet points at where you are and surfaces nearby running/walking loops whose shape, traced on the map, looks like a recognisable object** — a duck, a heart, a fish, a key. It flips the "Strava art" workflow: instead of spending hours planning a route that looks like something, Mappet scans the real street/path network around you and hands you a short list of loops that already resemble something, ready to run and export.
 
 ---
 
-## 🚧 WIP — planning phase, no application code yet
+## 🚧 Just notes — no application code, no active project
 
-This repository currently contains **product & engineering specs only**. There is **no runnable app yet**. The specs are written to be handed, ticket by ticket, to autonomous coding agents (Cursor **Auto mode**) to build the product.
+This repository currently contains **rough idea notes only**. There is **no runnable app**, no team, no timeline — just some speculative "what if" writing. The notes are structured *as if* they were specs so they could, in theory, be handed to autonomous coding agents (Cursor **Auto mode**) — but nobody is doing that today, and this may never go anywhere.
 
 Start here:
 
@@ -26,7 +28,7 @@ Start here:
 ### Docs
 | Item | Status |
 |---|---|
-| PRD | ✅ Drafted (MVP scope locked) |
+| PRD | ✅ Drafted (idea notes only) |
 | Architecture | ✅ Drafted |
 | Development plan | ✅ Drafted |
 | Agent-ready backlog | ✅ Drafted |
@@ -47,7 +49,7 @@ Legend: ✅ done · ⏳ planned/next · 🔮 later phase.
 
 ---
 
-## MVP scope at a glance (locked)
+## Imagined MVP scope (if this were ever built)
 
 - **Discovery only** — find recognisable shapes near you (no "draw me a specific thing" yet).
 - Bar for a hit is **recognisable**, not necessarily funny.

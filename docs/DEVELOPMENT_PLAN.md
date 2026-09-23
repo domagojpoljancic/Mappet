@@ -1,5 +1,7 @@
 # Development Plan — Mappet
 
+> ⚠️ **Just a random idea — very far from a product.** This "plan" is hypothetical. Nothing is scheduled, resourced, or being built. It only sketches how the idea *could* be approached if anyone ever decides to.
+
 A phased, agent-oriented plan. Each phase has a **goal**, an **exit criterion** (how you know it's done), and maps to tickets in `BACKLOG.md`. It is designed so each ticket can be handed to an autonomous agent (Cursor **Auto mode**) with minimal extra context.
 
 > Prove the risky part first. The order is deliberate: **Phase 0 de-risks recognition before any real app is built.**

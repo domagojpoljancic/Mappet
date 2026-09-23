@@ -1,6 +1,8 @@
 # Architecture — Mappet
 
-This document describes the technical design of Mappet, with emphasis on the **route-discovery engine** (the hard, differentiating part). It is written to be actionable for autonomous coding agents.
+> ⚠️ **Just a random idea — very far from a product.** This is a speculative sketch of *how one might* build the idea. None of it exists or has been implemented; treat it as thinking-out-loud, not a real system.
+
+This document describes a possible technical design for Mappet, with emphasis on the **route-discovery engine** (the hard, differentiating part). It is written to be actionable for autonomous coding agents, *if* the idea is ever pursued.
 
 > Read alongside `PRD.md` (what/why) and `DEVELOPMENT_PLAN.md` + `BACKLOG.md` (how/when).
 

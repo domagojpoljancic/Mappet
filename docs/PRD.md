@@ -1,8 +1,10 @@
 # Product Requirements Document — Mappet
 
-> **Name:** _Mappet_ (a.k.a. "GPS doodle route finder"). Every reference to "Mappet" below means this product.
+> ⚠️ **Just a random idea — very far from a product.** This document is an early brainstorm, not a commitment or a plan anyone is building. Nothing here has been built or validated. "PRD" is aspirational framing for a napkin sketch.
 
-**Status:** Draft v1 — approved scope for MVP (discovery-only).
+> **Name:** _Mappet_ (a.k.a. "GPS doodle route finder") — a working name for the idea described here.
+
+**Status:** Just an idea sketch (discovery-only framing). Not approved, not scheduled, not being built.
 **Owner:** Product (you).
 **Last updated:** 2026-09-23.
 
@@ -115,7 +117,7 @@ It flips the "Strava art" workflow. Instead of spending hours manually planning 
 
 ---
 
-## 8. Key product decisions (locked for v1)
+## 8. Key product decisions (hypothetical, if v1 were ever built)
 
 | # | Decision | Choice |
 |---|---|---|
