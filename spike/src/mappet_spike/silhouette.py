@@ -35,6 +35,7 @@ def render_silhouette(
     stroke_width: int = 3,
     ink: tuple[int, int, int] = (255, 255, 255),
     background: tuple[int, int, int] = (0, 0, 0),
+    filled: bool = False,
 ) -> Image.Image:
     """Render a centered, scaled white-on-black silhouette of a lat/lng loop."""
     img = Image.new("RGB", (size, size), background)
@@ -64,7 +65,10 @@ def render_silhouette(
 
     draw = ImageDraw.Draw(img)
     pixels = [to_px(x, y) for x, y in pts]
-    draw.line(pixels, fill=ink, width=stroke_width, joint="curve")
+    if filled and len(pixels) >= 3:
+        draw.polygon(pixels, fill=ink, outline=ink)
+    else:
+        draw.line(pixels, fill=ink, width=stroke_width, joint="curve")
     return img
 
 

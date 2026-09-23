@@ -86,6 +86,12 @@ Top shaped CLIP scores rose slightly (best **0.374**) and a Berlin candidate was
 
 ---
 
+## Addendum — filled silhouettes (Zagreb smoke)
+
+`--filled` render mode added. Zagreb-only re-run (240 raw → 128 shape-like → top 20): best CLIP **0.37-ish**, labels still generic (`horse`/`house`/`tree`). Filled blobs look more “object-like” to the eye than thin strokes, but still not clearly a named doodle. **Vision-LLM on top-N remains the next high-leverage experiment** (needs an API key — not run overnight).
+
+---
+
 ## Repro
 
 ```bash

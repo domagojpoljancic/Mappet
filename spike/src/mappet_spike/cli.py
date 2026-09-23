@@ -82,6 +82,8 @@ def cmd_eval(args: argparse.Namespace) -> int:
         skip_clip=args.skip_clip,
         top_k=args.top_k,
         require_shape_like=not args.no_shape_filter,
+        filled=args.filled,
+        stroke_width=args.stroke_width,
     )
     print(json.dumps(report, indent=2))
     return 0
@@ -133,6 +135,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Keep skinny corridor loops (disable compactness/area filter)",
     )
+    e.add_argument(
+        "--filled",
+        action="store_true",
+        help="Render filled silhouettes instead of stroke outlines",
+    )
+    e.add_argument("--stroke-width", type=int, default=3)
     e.set_defaults(func=cmd_eval)
 
     return p

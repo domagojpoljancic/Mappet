@@ -53,6 +53,8 @@ def run_eval(
     skip_clip: bool = False,
     top_k: int = 40,
     require_shape_like: bool = True,
+    filled: bool = False,
+    stroke_width: int = 3,
 ) -> dict[str, Any]:
     out_dir = Path(out_dir)
     img_dir = out_dir / "silhouettes"
@@ -93,7 +95,9 @@ def run_eval(
                 continue
             shape_kept += 1
 
-            img = render_silhouette(loop.polyline)
+            img = render_silhouette(
+                loop.polyline, filled=filled, stroke_width=stroke_width
+            )
             fname = f"{label.replace(' ', '_')}_{i:04d}.png"
             fname = "".join(c if c.isalnum() or c in "._-" else "_" for c in fname)
             rel = f"silhouettes/{fname}"
