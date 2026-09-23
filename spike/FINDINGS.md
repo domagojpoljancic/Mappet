@@ -63,10 +63,26 @@ Eyeballing the top-ranked silhouettes (London “bicycle” 0.355, Zagreb “hor
 
 ## Suggested next spike tickets
 
-- **T0.5** Geometry-aware loop filters (compactness, Hausdorff diversity, min enclosed area).
+- **T0.5** Geometry-aware loop filters — ✅ done (see addendum).
 - **T0.6** Alternate generators (random-walk with pleasantness bias; park-anchored loops).
 - **T0.7** Vision-LLM captioning on top-N + side-by-side HTML with CLIP.
 - **T0.8** Re-run human eval; only then open Phase 1 (T1.1+).
+
+---
+
+## Addendum — T0.5 geometry filters (same night)
+
+Filter: `compactness ≥ 0.08`, `area ≥ 40 000 m²`, `aspect ≤ 4`, `bbox_fill ≥ 0.08`. Over-generate 3× candidates then cull.
+
+| City | Raw loops | Shape-like kept |
+|---|---:|---:|
+| Zagreb | 450 | **227** |
+| Berlin | 365 | **243** |
+| London | 291 | **220** |
+
+Top shaped CLIP scores rose slightly (best **0.374**) and a Berlin candidate was labelled **fish** (C=0.27). Eyeballing still does **not** yield “clearly a fish/horse” — shapes are plumper corridors, not recognisable doodles. Geometry filtering is necessary but **not sufficient**.
+
+**Unchanged decision:** stay in spike mode; try thicker/filled rendering + vision-LLM top-N next (T0.6/T0.7). Do not start Phase 1 MVP yet.
 
 ---
 
@@ -80,5 +96,5 @@ uv run mappet-spike eval \
   --origin 45.8150,15.9819,Zagreb \
   --origin 52.5200,13.4050,Berlin \
   --origin 51.5074,-0.1278,London \
-  --distance-km 5 -n 150 --out output/eval
+  --distance-km 5 -n 150 --out output/eval-shaped
 ```

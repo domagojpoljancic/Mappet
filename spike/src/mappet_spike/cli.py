@@ -81,6 +81,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
         out_dir=out,
         skip_clip=args.skip_clip,
         top_k=args.top_k,
+        require_shape_like=not args.no_shape_filter,
     )
     print(json.dumps(report, indent=2))
     return 0
@@ -126,6 +127,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--skip-clip",
         action="store_true",
         help="Skip CLIP scoring (silhouettes only) — useful without torch",
+    )
+    e.add_argument(
+        "--no-shape-filter",
+        action="store_true",
+        help="Keep skinny corridor loops (disable compactness/area filter)",
     )
     e.set_defaults(func=cmd_eval)
 

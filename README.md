@@ -36,7 +36,8 @@
 | T0.2 Candidate loop generator (≥100 in dense cities) | ✅ Done |
 | T0.3 Silhouette renderer + local CLIP | ✅ Done |
 | T0.4 Human-eval HTML grid + FINDINGS.md | ✅ Done — **conditional no-go** on recognition quality (see [`spike/FINDINGS.md`](spike/FINDINGS.md)) |
-| T0.5+ geometry filters / vision-LLM top-N | ⏳ Next before Phase 1 MVP |
+| T0.5 Geometry filters (compactness/area) | ✅ Done — improves pool, still not human-recognisable |
+| T0.6+ thicker/filled render + vision-LLM top-N | ⏳ Next before Phase 1 MVP |
 
 ### Product (planned — not built)
 | Capability | Status |

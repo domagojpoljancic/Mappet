@@ -9,6 +9,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from mappet_spike.geometry import is_shape_like, loop_metrics
 from mappet_spike.graph import GraphPreferences, build_graph
 from mappet_spike.loops import generate_loops
 from mappet_spike.recognise import clip_available, score_silhouette
@@ -28,6 +29,9 @@ class EvalItem:
     score: float
     image_relpath: str
     bearing_deg: float | None
+    compactness: float = 0.0
+    area_m2: float = 0.0
+    shape_like: bool = True
 
 
 def parse_origin(spec: str) -> tuple[float, float, str]:
@@ -48,6 +52,7 @@ def run_eval(
     out_dir: Path,
     skip_clip: bool = False,
     top_k: int = 40,
+    require_shape_like: bool = True,
 ) -> dict[str, Any]:
     out_dir = Path(out_dir)
     img_dir = out_dir / "silhouettes"
@@ -70,18 +75,26 @@ def run_eval(
             activity="run",
             prefs=GraphPreferences(),
         )
+        # Over-generate then filter — geometry cull shrinks the pool.
+        raw_n = max(n_candidates * 3, n_candidates + 100)
         loops = generate_loops(
             built.graph,
             (lat, lng),
             distance_km,
             tolerance=tolerance,
-            n=n_candidates,
+            n=raw_n,
         )
         scored: list[EvalItem] = []
+        shape_kept = 0
         for i, loop in enumerate(loops):
+            metrics = loop_metrics(loop.polyline)
+            shape_ok = is_shape_like(loop.polyline)
+            if require_shape_like and not shape_ok:
+                continue
+            shape_kept += 1
+
             img = render_silhouette(loop.polyline)
             fname = f"{label.replace(' ', '_')}_{i:04d}.png"
-            # Keep filename filesystem-safe.
             fname = "".join(c if c.isalnum() or c in "._-" else "_" for c in fname)
             rel = f"silhouettes/{fname}"
             (img_dir / fname).write_bytes(silhouette_png_bytes(img))
@@ -102,11 +115,15 @@ def run_eval(
                     score=score,
                     image_relpath=rel,
                     bearing_deg=loop.bearing_deg,
+                    compactness=metrics["compactness"],
+                    area_m2=metrics["area_m2"],
+                    shape_like=shape_ok,
                 )
             )
 
-        scored.sort(key=lambda x: x.score, reverse=True)
-        keep = scored[:top_k] if use_clip else scored[:top_k]
+        # Prefer high CLIP among shape-like; break ties with compactness.
+        scored.sort(key=lambda x: (x.score, x.compactness), reverse=True)
+        keep = scored[:top_k]
         items.extend(keep)
         origin_summaries.append(
             {
@@ -116,12 +133,13 @@ def run_eval(
                 "from_cache": built.from_cache,
                 "nodes": built.node_count,
                 "edges": built.edge_count,
-                "loops": len(loops),
+                "loops_raw": len(loops),
+                "loops_shape_like": shape_kept,
                 "kept": len(keep),
             }
         )
 
-    items.sort(key=lambda x: x.score, reverse=True)
+    items.sort(key=lambda x: (x.score, x.compactness), reverse=True)
     html_path = out_dir / "index.html"
     html_path.write_text(_render_html(items, origin_summaries, use_clip), encoding="utf-8")
     meta = {
@@ -129,6 +147,7 @@ def run_eval(
         "tolerance": tolerance,
         "n_candidates": n_candidates,
         "clip": use_clip,
+        "require_shape_like": require_shape_like,
         "origins": origin_summaries,
         "items": [asdict(it) for it in items],
         "html": str(html_path),
@@ -157,13 +176,14 @@ def _render_html(
               <figcaption>
                 <strong>{html.escape(it.label_guess)}</strong>
                 <span class="score">{it.score:.3f}</span><br/>
-                <span class="meta">{html.escape(it.origin_label)} · {it.length_m/1000:.2f} km</span>
+                <span class="meta">{html.escape(it.origin_label)} · {it.length_m/1000:.2f} km · C={it.compactness:.2f}</span>
               </figcaption>
             </figure>
             """
         )
     origin_rows = "".join(
-        f"<li><b>{html.escape(o['label'])}</b> — {o['loops']} loops "
+        f"<li><b>{html.escape(o['label'])}</b> — {o.get('loops_shape_like', o.get('loops', 0))} shape-like "
+        f"/ {o.get('loops_raw', o.get('loops', 0))} raw "
         f"({o['nodes']} nodes / {o['edges']} edges, cache={o['from_cache']})</li>"
         for o in origins
     )
