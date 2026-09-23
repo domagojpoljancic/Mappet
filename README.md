@@ -1,6 +1,6 @@
 # Mappet 🏃‍♀️✏️🗺️
 
-> ⚠️ **Just a random idea — nothing more.** This is an early, half-baked brainstorm, **very far from a product** (or a company, a commitment, or a plan anyone is executing). Nothing here has been built, tested, or validated. Treat everything below as a napkin sketch that may never happen.
+> ⚠️ **Just a random idea — still very early.** This began as a napkin-sketch brainstorm. There is now a **minimal runnable dev slice** (a frontend + a mock route engine) so the idea can be explored end-to-end, but it is **far from a product** and the "magic" (real route recognition) is **not built yet**. Treat everything here as experimental.
 
 > **Mappet** — a working name for the GPS doodle-route finder idea described here.
 
@@ -8,9 +8,14 @@
 
 ---
 
-## 🚧 Just notes — no application code, no active project
+## 🚧 Where this is
 
-This repository currently contains **rough idea notes only**. There is **no runnable app**, no team, no timeline — just some speculative "what if" writing. The notes are structured *as if* they were specs so they could, in theory, be handed to autonomous coding agents (Cursor **Auto mode**) — but nobody is doing that today, and this may never go anywhere.
+The repository now contains a **thin, runnable vertical slice** that matches the documented architecture, plus the original idea notes. What runs today:
+
+- **`apps/web`** — a Next.js + TypeScript + Tailwind frontend with an interactive Leaflet/OpenStreetMap map, geolocation + draggable origin pin, activity/distance/preference controls, a results list, and per-route GPX download.
+- **`services/engine`** — a FastAPI **Route Engine** implementing the API contract from `docs/ARCHITECTURE.md`. Its pipeline is currently a **credential-free mock** that synthesises deterministic recognisable loop shapes around the origin, so the whole stack works with **zero external credentials**. The real graph → loops → silhouette → CLIP-recognition pipeline is the Phase 0/1 work in `docs/BACKLOG.md`.
+
+The idea notes are structured *as if* they were specs so they can be handed to autonomous coding agents (Cursor **Auto mode**).
 
 Start here:
 
@@ -23,50 +28,97 @@ Start here:
 
 ---
 
+## Quick start
+
+Requirements: **Node.js 20+** (developed on Node 22) and **Python 3.11+**.
+
+```bash
+git clone https://github.com/domagojpoljancic/mappet.git
+cd mappet
+
+# One-shot install for both apps (frontend deps + engine venv)
+bash scripts/setup.sh
+```
+
+Then run the two services in separate terminals:
+
+```bash
+# Terminal 1 — Route Engine (FastAPI) on :8000
+cd services/engine && . .venv/bin/activate && uvicorn app.main:app --port 8000
+
+# Terminal 2 — Frontend (Next.js) on :4311
+cd apps/web && npm run dev
+```
+
+Open **http://localhost:4311**, then click **✨ Find shapes**. The map draws the top-5 mock loops; click a result (or a route on the map) to highlight it, and use **GPX** to download a track.
+
+> The frontend reads the engine URL from `NEXT_PUBLIC_ENGINE_URL` (default `http://localhost:8000`). See `apps/web/.env.example`.
+
+---
+
+## Project layout
+
+```
+apps/web/           Next.js + TS + Tailwind PWA-style frontend (Leaflet map)
+services/engine/    FastAPI route engine (mock pipeline + tests)
+scripts/setup.sh    Idempotent installer for both apps
+docs/               PRD, architecture, development plan, backlog
+.cursor/            Cloud Agent environment config
+```
+
+---
+
+## Development
+
+| Command | Where | What it does |
+|---|---|---|
+| `npm run dev` | `apps/web` | Next.js dev server on port 4311 |
+| `npm run build` | `apps/web` | Production build + type check |
+| `npm run lint` | `apps/web` | ESLint (next/core-web-vitals) |
+| `npm run typecheck` | `apps/web` | `tsc --noEmit` |
+| `uvicorn app.main:app --port 8000` | `services/engine` | Run the route engine |
+| `python -m pytest` | `services/engine` | Engine unit tests |
+
+### Route Engine API (see `docs/ARCHITECTURE.md` §6)
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /health` | Liveness probe |
+| `POST /search` | Return ranked top-5 loops for an origin/activity/distance |
+| `GET /search/{job_id}` | Fetch a previous search (polling shape) |
+| `GET /route/{route_id}/gpx` | Download a route as a GPX track |
+
+---
+
 ## Project status
 
 ### Docs
 | Item | Status |
 |---|---|
-| PRD | ✅ Drafted (idea notes only) |
+| PRD | ✅ Drafted (idea notes) |
 | Architecture | ✅ Drafted |
 | Development plan | ✅ Drafted |
 | Agent-ready backlog | ✅ Drafted |
 
-### Product (planned — not built)
+### Product
 | Capability | Status |
 |---|---|
+| Frontend scaffold (map, controls, results, GPX) | ✅ Runnable slice |
+| Route Engine API (FastAPI) + GPX export | ✅ Runnable (mock pipeline) |
+| Cloud Agent environment (`.cursor/environment.json`) | ✅ Done |
+| Real Route Engine: graph → loops → silhouette → recognise → rank | ⏳ TBD (Phase 0/1) |
 | Phase 0 recognition spike | ⏳ TBD (build first — de-risks everything) |
-| Route Engine (Python/FastAPI): graph → loops → silhouette → recognise → rank | ⏳ TBD |
-| Frontend PWA (Next.js): GPS/pin, controls, results, detail | ⏳ TBD |
-| GPX export + share image | ⏳ TBD |
+| GPX export + share image | 🟡 GPX done; share image TBD |
 | Strava OAuth + upload | 🔮 Fast-follow (Phase 2) |
-| In-app turn-by-turn | 🔮 Later |
-| Design mode (draw a chosen shape) | 🔮 Later (Phase 3) |
-| Trails / cycling / offline | 🔮 Later (Phase 3) |
+| Design mode / trails / offline | 🔮 Later (Phase 3) |
 
-Legend: ✅ done · ⏳ planned/next · 🔮 later phase.
-
----
-
-## Imagined MVP scope (if this were ever built)
-
-- **Discovery only** — find recognisable shapes near you (no "draw me a specific thing" yet).
-- Bar for a hit is **recognisable**, not necessarily funny.
-- **Run + Walk**, city roads/paths; **distance slider 2–100 km**, loop back to start.
-- Origin = **GPS by default + draggable pin**; **avoid busy roads / prefer quiet & parks**.
-- **AI vision captioning** (top-N) with **local-CLIP fallback** so it runs credential-free.
-- **Top 5** results, auto-named, shareable; **GPX export + open in Strava/Komoot**.
-- Platform: **Next.js + TypeScript + Tailwind PWA**, mobile-first.
-- Data: **OpenStreetMap** street graph + free tiles. **Near-zero-cost** to operate.
-
-Full detail and rationale in [`docs/PRD.md`](docs/PRD.md).
+Legend: ✅ done · 🟡 partial · ⏳ planned/next · 🔮 later phase.
 
 ---
 
 ## The one thing to prove first
 
-The make-or-break risk is **recognition quality** — do random street loops actually look like recognisable objects? Before building the full app, run the **Phase 0 spike** (see [`docs/DEVELOPMENT_PLAN.md`](docs/DEVELOPMENT_PLAN.md) and tickets T0.1–T0.4): generate many candidate loops for a real location, render silhouettes, score with CLIP, and eyeball an HTML grid. If genuinely recognisable shapes show up, proceed to the MVP.
+The make-or-break risk is **recognition quality** — do random street loops actually look like recognisable objects? The current engine returns *mock* shapes so the app is demonstrable; before investing in the full app, run the **Phase 0 spike** (see [`docs/DEVELOPMENT_PLAN.md`](docs/DEVELOPMENT_PLAN.md), tickets T0.1–T0.4) to replace the mock with real graph loops scored by CLIP and eyeball an HTML grid. If genuinely recognisable shapes show up, proceed to the MVP.
 
 ---
 
@@ -77,9 +129,3 @@ The make-or-break risk is **recognition quality** — do random street loops act
 3. Prefer one ticket per agent run; require its acceptance criteria (build + tests) to pass.
 4. Work bottom-up: engine primitives → pipeline → API → frontend → polish.
 5. Keep these status tables current as tickets land.
-
----
-
-## Quick start
-
-There is nothing to run yet. Once Phase 1 lands, this section will document `docker-compose up` for the web app + Route Engine, plus a credential-free local mode. Until then, read the docs above.
