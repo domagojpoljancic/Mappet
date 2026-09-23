@@ -64,7 +64,7 @@ Eyeballing the top-ranked silhouettes (London “bicycle” 0.355, Zagreb “hor
 ## Suggested next spike tickets
 
 - **T0.5** Geometry-aware loop filters — ✅ done (see addendum).
-- **T0.6** Alternate generators (random-walk with pleasantness bias; park-anchored loops).
+- **T0.6** Alternate generators (multi-waypoint + random-walk) — ✅ done (multi-waypoint works; random-walk still weak).
 - **T0.7** Vision-LLM captioning on top-N + side-by-side HTML with CLIP.
 - **T0.8** Re-run human eval; only then open Phase 1 (T1.1+).
 
@@ -88,7 +88,23 @@ Top shaped CLIP scores rose slightly (best **0.374**) and a Berlin candidate was
 
 ## Addendum — filled silhouettes (Zagreb smoke)
 
-`--filled` render mode added. Zagreb-only re-run (240 raw → 128 shape-like → top 20): best CLIP **0.37-ish**, labels still generic (`horse`/`house`/`tree`). Filled blobs look more “object-like” to the eye than thin strokes, but still not clearly a named doodle. **Vision-LLM on top-N remains the next high-leverage experiment** (needs an API key — not run overnight).
+`--filled` render mode added. Zagreb-only re-run (240 raw → 128 shape-like → top 20): best CLIP fell to **~0.33** (vs ~0.37 stroke), labels still generic. Filled blobs can look more “object-like” to humans, but **local CLIP alone does not benefit**. **Vision-LLM on top-N remains the next high-leverage experiment** (needs an API key — not run overnight).
+
+---
+
+## Addendum — T0.6 alternate generators
+
+Mixed strategies with reserved quotas:
+
+| Strategy | Zagreb raw count (n≈360 target pool) | Notes |
+|---|---:|---|
+| `out_back` | 234 | Quiet-biased band fill; still dominates top CLIP |
+| `multi_waypoint` | 120 | Circle waypoints → polygonal circuits; in top-30 but **lower mean compactness** than best out-backs |
+| `random_walk` | 0 | Pleasantness-biased walk rarely lands in ±15% length band — needs more work |
+
+Shape-like after filter: **146 / 354**. Best CLIP still **~0.36**, labels still generic (`horse`/`guitar`/`house`). Multi-waypoint adds variety but does **not** unlock recognisable doodles under local CLIP.
+
+**Unchanged decision:** conditional no-go for MVP. Next: vision-LLM top-N (needs API key) or tune random-walk length targeting.
 
 ---
 

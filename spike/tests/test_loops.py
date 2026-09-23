@@ -65,8 +65,8 @@ def test_generate_loops_length_and_closure():
             abs(lp.polyline[0][0] - lp.polyline[-1][0]) < 1e-8
             and abs(lp.polyline[0][1] - lp.polyline[-1][1]) < 1e-8
         )
-        # Closure in metres via identical first/last node path.
         assert lp.nodes[0] == lp.nodes[-1]
+        assert lp.strategy in {"out_back", "multi_waypoint", "random_walk"}
 
 
 def test_loops_are_deduplicated():
@@ -74,3 +74,12 @@ def test_loops_are_deduplicated():
     loops = generate_loops(g, origin, distance_km=2.0, tolerance=0.20, n=40)
     hashes = [lp.geometry_hash for lp in loops]
     assert len(hashes) == len(set(hashes))
+
+
+def test_mixed_strategies_produce_variety():
+    g, origin = _grid_graph(n=31)
+    loops = generate_loops(g, origin, distance_km=2.5, tolerance=0.25, n=60)
+    strategies = {lp.strategy for lp in loops}
+    # At least out_back should work on a grid; others are bonus.
+    assert "out_back" in strategies
+    assert len(loops) >= 15

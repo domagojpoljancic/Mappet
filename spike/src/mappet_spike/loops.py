@@ -1,4 +1,4 @@
-"""Candidate loop generator — out-and-different-back across bearings (T0.2)."""
+"""Candidate loop generators — out-back, multi-waypoint, random-walk (T0.2/T0.6)."""
 
 from __future__ import annotations
 
@@ -15,6 +15,20 @@ from mappet_spike.graph import haversine_m, nearest_node
 
 logger = logging.getLogger(__name__)
 
+QUIET_HIGHWAYS = frozenset(
+    {
+        "path",
+        "footway",
+        "pedestrian",
+        "living_street",
+        "residential",
+        "track",
+        "cycleway",
+        "steps",
+        "service",
+    }
+)
+
 
 @dataclass
 class Loop:
@@ -24,10 +38,10 @@ class Loop:
     polyline: list[tuple[float, float]]  # (lat, lng)
     length_m: float
     bearing_deg: float | None = None
+    strategy: str = "out_back"
 
     @property
     def geometry_hash(self) -> str:
-        # Coarse grid hash for near-duplicate detection.
         pts = [
             (round(lat, 4), round(lng, 4))
             for lat, lng in self.polyline[:: max(1, len(self.polyline) // 32)]
@@ -36,7 +50,7 @@ class Loop:
         return hashlib.sha1(raw).hexdigest()[:12]
 
 
-def _node_latlng(graph: nx.MultiDiGraph, node: Any) -> tuple[float, float]:
+def _node_latlng(graph: nx.Graph, node: Any) -> tuple[float, float]:
     data = graph.nodes[node]
     return float(data["y"]), float(data["x"])
 
@@ -59,7 +73,6 @@ def _path_polyline(graph: nx.Graph, nodes: Sequence[Any]) -> list[tuple[float, f
 def _destination_point(
     lat: float, lng: float, bearing_deg: float, distance_m: float
 ) -> tuple[float, float]:
-    """Move distance_m along bearing from (lat, lng); return new (lat, lng)."""
     r = 6_371_000.0
     br = math.radians(bearing_deg)
     lat1 = math.radians(lat)
@@ -87,7 +100,6 @@ def _shortest_path_weighted(
 def _penalise_edges(
     graph: nx.Graph, nodes: Sequence[Any], factor: float = 4.0
 ) -> dict[tuple[Any, Any, Any], float]:
-    """Temporarily inflate weights along a path; return original weights to restore."""
     originals: dict[tuple[Any, Any, Any], float] = {}
     for u, v in zip(nodes, nodes[1:]):
         edges = graph.get_edge_data(u, v) or {}
@@ -96,7 +108,6 @@ def _penalise_edges(
             if key not in originals:
                 originals[key] = float(data.get("weight", data.get("length", 1.0)))
             data["weight"] = originals[key] * factor
-            # Also penalise reverse edge if present (undirected MultiGraph).
             rev = graph.get_edge_data(v, u) or {}
             for rk, rdata in rev.items():
                 rkey = (v, u, rk)
@@ -115,7 +126,6 @@ def _restore_weights(
 
 
 def _edge_overlap_ratio(a: Sequence[Any], b: Sequence[Any]) -> float:
-    """Fraction of undirected edges in `a` that also appear in `b`."""
     def edges(nodes: Sequence[Any]) -> set[tuple[Any, Any]]:
         out: set[tuple[Any, Any]] = set()
         for u, v in zip(nodes, nodes[1:]):
@@ -129,12 +139,10 @@ def _edge_overlap_ratio(a: Sequence[Any], b: Sequence[Any]) -> float:
 
 
 def _to_undirected_multi(graph: nx.MultiDiGraph) -> nx.MultiGraph:
-    """Undirected copy so walk routing ignores one-way quirks."""
     g = nx.MultiGraph()
     for node, data in graph.nodes(data=True):
         g.add_node(node, **data)
     for u, v, _k, data in graph.edges(keys=True, data=True):
-        # Keep a single parallel edge with the nicer weight if duplicates exist.
         length = float(data.get("length") or 1.0)
         pleasant = float(data.get("pleasantness") or 0.55)
         weight = float(data.get("weight") or (length / max(pleasant, 0.05)))
@@ -145,13 +153,345 @@ def _to_undirected_multi(graph: nx.MultiDiGraph) -> nx.MultiGraph:
             "highway": data.get("highway"),
         }
         if g.has_edge(u, v):
-            # Prefer shorter / nicer existing edge.
             existing = g.get_edge_data(u, v)
             best_existing = min(float(d.get("weight", 1e18)) for d in existing.values())
             if weight >= best_existing:
                 continue
         g.add_edge(u, v, **attrs)
     return g
+
+
+def _highway_str(hw: Any) -> str | None:
+    if hw is None:
+        return None
+    if isinstance(hw, list):
+        return str(hw[0]) if hw else None
+    return str(hw)
+
+
+def _node_quiet_score(graph: nx.Graph, node: Any) -> float:
+    """Average pleasantness of incident edges — proxy for park/quiet preference."""
+    total = 0.0
+    count = 0
+    for _, _, data in graph.edges(node, data=True):
+        total += float(data.get("pleasantness") or 0.55)
+        hw = _highway_str(data.get("highway"))
+        if hw in QUIET_HIGHWAYS:
+            total += 0.15
+        count += 1
+    return (total / count) if count else 0.5
+
+
+def _maybe_add(
+    loops: list[Loop],
+    seen: set[str],
+    graph: nx.Graph,
+    nodes: list[Any],
+    *,
+    lo: float,
+    hi: float,
+    closure_m: float,
+    bearing: float | None,
+    strategy: str,
+    limit: int,
+) -> bool:
+    if len(loops) >= limit:
+        return False
+    if not nodes or nodes[0] != nodes[-1]:
+        return False
+    length = _path_length_m(graph, nodes)
+    if not (lo <= length <= hi):
+        return False
+    start = _node_latlng(graph, nodes[0])
+    end = _node_latlng(graph, nodes[-1])
+    if haversine_m(start[0], start[1], end[0], end[1]) > closure_m:
+        return False
+    poly = _path_polyline(graph, nodes)
+    loop = Loop(
+        nodes=nodes,
+        polyline=poly,
+        length_m=length,
+        bearing_deg=bearing,
+        strategy=strategy,
+    )
+    if loop.geometry_hash in seen:
+        return False
+    seen.add(loop.geometry_hash)
+    loops.append(loop)
+    return True
+
+
+def _generate_out_back(
+    g: nx.MultiGraph,
+    graph_wgs: nx.MultiDiGraph,
+    origin_node: Any,
+    lat: float,
+    lng: float,
+    *,
+    target_m: float,
+    lo: float,
+    hi: float,
+    closure_m: float,
+    rng: random.Random,
+    loops: list[Loop],
+    seen: set[str],
+    quota: int,
+) -> int:
+    half = target_m / 2.0
+    try:
+        dist_from_origin = nx.single_source_dijkstra_path_length(
+            g, origin_node, weight="length"
+        )
+    except Exception:
+        dist_from_origin = {}
+
+    band_lo, band_hi = half * 0.55, half * 1.35
+    band_nodes = [
+        node
+        for node, d in dist_from_origin.items()
+        if band_lo <= d <= band_hi and node != origin_node
+    ]
+    band_nodes.sort(key=lambda nd: _node_quiet_score(g, nd), reverse=True)
+
+    bearings = [i * (360.0 / max(quota, 1)) for i in range(max(quota, 1))]
+    radius_factors = [0.65, 0.8, 0.95, 1.1, 1.25]
+    penalty_factors = [4.0, 8.0, 16.0]
+    attempts = 0
+    max_attempts = max(quota * 10, 400)
+    limit = len(loops) + quota
+
+    def try_anchor(anchor: Any, bearing: float | None) -> None:
+        nonlocal attempts
+        if len(loops) >= limit or attempts >= max_attempts:
+            return
+        if anchor == origin_node:
+            return
+        attempts += 1
+        out_path = _shortest_path_weighted(g, origin_node, anchor)
+        if not out_path or len(out_path) < 2:
+            return
+        for factor in penalty_factors:
+            if len(loops) >= limit or attempts >= max_attempts:
+                return
+            originals = _penalise_edges(g, out_path, factor=factor)
+            try:
+                back_path = _shortest_path_weighted(g, anchor, origin_node)
+            finally:
+                _restore_weights(g, originals)
+            if not back_path or len(back_path) < 2:
+                continue
+            if _edge_overlap_ratio(out_path, list(reversed(back_path))) > 0.55:
+                continue
+            nodes = list(out_path) + list(back_path[1:])
+            if _maybe_add(
+                loops,
+                seen,
+                g,
+                nodes,
+                lo=lo,
+                hi=hi,
+                closure_m=closure_m,
+                bearing=bearing,
+                strategy="out_back",
+                limit=limit,
+            ):
+                return
+
+    for bearing in bearings:
+        if len(loops) >= limit or attempts >= max_attempts:
+            break
+        for rf in radius_factors:
+            dest_lat, dest_lng = _destination_point(lat, lng, bearing, half * rf)
+            try:
+                anchor = nearest_node(graph_wgs, dest_lat, dest_lng)
+            except Exception:
+                continue
+            try_anchor(anchor, bearing)
+
+    for anchor in band_nodes:
+        if len(loops) >= limit or attempts >= max_attempts:
+            break
+        try_anchor(anchor, None)
+
+    return attempts
+
+
+def _generate_multi_waypoint(
+    g: nx.MultiGraph,
+    graph_wgs: nx.MultiDiGraph,
+    origin_node: Any,
+    lat: float,
+    lng: float,
+    *,
+    target_m: float,
+    lo: float,
+    hi: float,
+    closure_m: float,
+    rng: random.Random,
+    loops: list[Loop],
+    seen: set[str],
+    quota: int,
+) -> int:
+    """Polygonal circuits via waypoints on a circle — fatter blob shapes."""
+    attempts = 0
+    max_attempts = max(quota * 25, 500)
+    limit = len(loops) + quota
+    base_radius = target_m / (2.0 * math.pi)
+
+    while len(loops) < limit and attempts < max_attempts:
+        attempts += 1
+        k = rng.choice([2, 2, 3, 3, 4])
+        radius_m = base_radius * rng.uniform(0.75, 1.35)
+        stretch = rng.uniform(0.85, 1.25)
+        base_bearing = rng.uniform(0, 360)
+        waypoints: list[Any] = []
+        for i in range(k):
+            bearing = (base_bearing + i * (360.0 / k) + rng.uniform(-18, 18)) % 360
+            r = radius_m * (stretch if i % 2 == 0 else 1.0 / stretch)
+            dlat, dlng = _destination_point(lat, lng, bearing, r)
+            try:
+                wp = nearest_node(graph_wgs, dlat, dlng)
+            except Exception:
+                wp = None
+            if wp is None or wp == origin_node or wp in waypoints:
+                continue
+            waypoints.append(wp)
+        if len(waypoints) < 2:
+            continue
+
+        quiet = sum(_node_quiet_score(g, wp) for wp in waypoints) / len(waypoints)
+        if quiet < 0.50 and rng.random() < 0.35:
+            continue
+
+        chain = [origin_node] + waypoints + [origin_node]
+        nodes: list[Any] = [origin_node]
+        used: list[Any] = []
+        ok = True
+        for a, b in zip(chain, chain[1:]):
+            originals = _penalise_edges(g, used, factor=5.0) if used else {}
+            try:
+                seg = _shortest_path_weighted(g, a, b)
+            finally:
+                if originals:
+                    _restore_weights(g, originals)
+            if not seg or len(seg) < 2:
+                ok = False
+                break
+            nodes.extend(seg[1:])
+            used.extend(seg)
+        if not ok:
+            continue
+
+        _maybe_add(
+            loops,
+            seen,
+            g,
+            nodes,
+            lo=lo,
+            hi=hi,
+            closure_m=closure_m,
+            bearing=base_bearing,
+            strategy="multi_waypoint",
+            limit=limit,
+        )
+
+    return attempts
+
+
+def _generate_random_walk(
+    g: nx.MultiGraph,
+    origin_node: Any,
+    *,
+    target_m: float,
+    lo: float,
+    hi: float,
+    closure_m: float,
+    rng: random.Random,
+    loops: list[Loop],
+    seen: set[str],
+    quota: int,
+) -> int:
+    """Pleasantness-biased walk; home when length budget is nearly spent."""
+    attempts = 0
+    max_attempts = max(quota * 20, 400)
+    limit = len(loops) + quota
+    try:
+        return_dist = nx.single_source_dijkstra_path_length(
+            g, origin_node, weight="length"
+        )
+    except Exception:
+        return_dist = {origin_node: 0.0}
+
+    while len(loops) < limit and attempts < max_attempts:
+        attempts += 1
+        path = [origin_node]
+        length = 0.0
+        visited_edges: set[tuple[Any, Any]] = set()
+        steps = 0
+        closed = False
+        outbound_budget = target_m * rng.uniform(0.45, 0.70)
+
+        while steps < 500:
+            steps += 1
+            cur = path[-1]
+            back = float(return_dist.get(cur, float("inf")))
+
+            if length >= outbound_budget and back < float("inf"):
+                projected = length + back
+                if lo <= projected <= hi:
+                    home = _shortest_path_weighted(g, cur, origin_node, weight="length")
+                    if home and len(home) >= 2:
+                        path.extend(home[1:])
+                        length = _path_length_m(g, path)
+                        closed = True
+                        break
+                if projected > hi:
+                    break
+
+            neighbors = []
+            for nbr in g.neighbors(cur):
+                if nbr == origin_node and length < outbound_budget * 0.8:
+                    continue
+                edge_key = (cur, nbr) if cur <= nbr else (nbr, cur)
+                if edge_key in visited_edges and rng.random() > 0.2:
+                    continue
+                edges = g.get_edge_data(cur, nbr) or {}
+                best = min(edges.values(), key=lambda d: float(d.get("weight", 1.0)))
+                elen = float(best.get("length") or 1.0)
+                pleasant = float(best.get("pleasantness") or 0.55)
+                score = (pleasant ** 2) * (1.0 + rng.random() * 0.3) / max(elen, 1.0)
+                nbr_back = float(return_dist.get(nbr, target_m))
+                if length + elen + nbr_back > hi:
+                    score *= 0.02
+                neighbors.append((nbr, elen, edge_key, score))
+
+            if not neighbors:
+                break
+            weights = [max(s, 1e-6) for _, _, _, s in neighbors]
+            pick = rng.choices(neighbors, weights=weights, k=1)[0]
+            nbr, elen, edge_key, _ = pick
+            path.append(nbr)
+            length += elen
+            visited_edges.add(edge_key)
+            if length > hi:
+                break
+
+        if not closed:
+            continue
+        _maybe_add(
+            loops,
+            seen,
+            g,
+            path,
+            lo=lo,
+            hi=hi,
+            closure_m=closure_m,
+            bearing=None,
+            strategy="random_walk",
+            limit=limit,
+        )
+
+    return attempts
 
 
 def generate_loops(
@@ -166,15 +506,15 @@ def generate_loops(
 ) -> list[Loop]:
     """Generate up to n distinct loops near `distance_km` that close at origin.
 
-    Strategy: sample anchors across bearings at ~distance/2, shortest path out,
-    strongly penalise used edges, shortest path back. Also sample random nodes
-    in a distance band. Deduplicate near-identical geometry.
+    Mixes three strategies (T0.6) with reserved quotas:
+    - out-and-different-back across bearings (quiet-biased band fill)
+    - multi-waypoint polygonal circuits (fatter shapes)
+    - pleasantness-biased random walks that home when budget is spent
     """
     rng = random.Random(seed)
     lat, lng = origin
     target_m = distance_km * 1000.0
     lo, hi = target_m * (1.0 - tolerance), target_m * (1.0 + tolerance)
-    half = target_m / 2.0
 
     origin_node = nearest_node(graph, lat, lng)
     o_lat, o_lng = _node_latlng(graph, origin_node)
@@ -185,103 +525,49 @@ def generate_loops(
         )
 
     g = _to_undirected_multi(graph)
-
-    # Precompute node distances from origin for random-band sampling.
-    try:
-        dist_from_origin = nx.single_source_dijkstra_path_length(
-            g, origin_node, weight="length"
-        )
-    except Exception:
-        dist_from_origin = {}
-
-    band_lo, band_hi = half * 0.55, half * 1.35
-    band_nodes = [
-        node
-        for node, d in dist_from_origin.items()
-        if band_lo <= d <= band_hi and node != origin_node
-    ]
-
-    bearings = [i * (360.0 / max(n, 1)) for i in range(n)]
-    radius_factors = [0.65, 0.8, 0.95, 1.1, 1.25]
-    penalty_factors = [4.0, 8.0, 16.0]
-
     loops: list[Loop] = []
     seen: set[str] = set()
-    attempts = 0
-    max_attempts = max(n * 12, 800)
 
-    def try_anchor(anchor: Any, bearing: float | None) -> None:
-        nonlocal attempts
-        if len(loops) >= n or attempts >= max_attempts:
-            return
-        if anchor == origin_node:
-            return
-        attempts += 1
+    q_out = max(1, n // 3)
+    q_multi = max(1, n // 3)
+    q_walk = max(1, n - q_out - q_multi)
 
-        out_path = _shortest_path_weighted(g, origin_node, anchor)
-        if not out_path or len(out_path) < 2:
-            return
+    shared = dict(
+        target_m=target_m,
+        lo=lo,
+        hi=hi,
+        closure_m=closure_m,
+        rng=rng,
+        loops=loops,
+        seen=seen,
+    )
 
-        for factor in penalty_factors:
-            if len(loops) >= n or attempts >= max_attempts:
-                return
-            originals = _penalise_edges(g, out_path, factor=factor)
-            try:
-                back_path = _shortest_path_weighted(g, anchor, origin_node)
-            finally:
-                _restore_weights(g, originals)
+    a1 = _generate_out_back(
+        g, graph, origin_node, lat, lng, quota=q_out, **shared
+    )
+    a2 = _generate_multi_waypoint(
+        g, graph, origin_node, lat, lng, quota=q_multi, **shared
+    )
+    a3 = _generate_random_walk(g, origin_node, quota=q_walk, **shared)
 
-            if not back_path or len(back_path) < 2:
-                continue
-            # Reject near out-and-back along the same corridor.
-            if _edge_overlap_ratio(out_path, list(reversed(back_path))) > 0.55:
-                continue
+    remaining = n - len(loops)
+    if remaining > 0:
+        a1 += _generate_out_back(
+            g, graph, origin_node, lat, lng, quota=remaining, **shared
+        )
 
-            nodes = list(out_path) + list(back_path[1:])
-            if nodes[0] != nodes[-1]:
-                continue
-
-            length = _path_length_m(g, nodes)
-            if not (lo <= length <= hi):
-                continue
-
-            start = _node_latlng(g, nodes[0])
-            end = _node_latlng(g, nodes[-1])
-            if haversine_m(start[0], start[1], end[0], end[1]) > closure_m:
-                continue
-
-            poly = _path_polyline(g, nodes)
-            loop = Loop(nodes=nodes, polyline=poly, length_m=length, bearing_deg=bearing)
-            if loop.geometry_hash in seen:
-                continue
-            seen.add(loop.geometry_hash)
-            loops.append(loop)
-            return  # one success per anchor is enough
-
-    for bearing in bearings:
-        if len(loops) >= n or attempts >= max_attempts:
-            break
-        for rf in radius_factors:
-            dest_lat, dest_lng = _destination_point(lat, lng, bearing, half * rf)
-            try:
-                anchor = nearest_node(graph, dest_lat, dest_lng)
-            except Exception:
-                continue
-            try_anchor(anchor, bearing)
-
-    # Fill remaining quota with random band anchors.
-    rng.shuffle(band_nodes)
-    for anchor in band_nodes:
-        if len(loops) >= n or attempts >= max_attempts:
-            break
-        try_anchor(anchor, None)
+    by_strategy: dict[str, int] = {}
+    for lp in loops:
+        by_strategy[lp.strategy] = by_strategy.get(lp.strategy, 0) + 1
 
     logger.info(
-        "Generated %d loops (target=%.0fm tol=±%.0f%% attempts=%d band=%d)",
+        "Generated %d loops (target=%.0fm tol=±%.0f%% attempts=%d/%d/%d) %s",
         len(loops),
         target_m,
         tolerance * 100,
-        attempts,
-        len(band_nodes),
+        a1,
+        a2,
+        a3,
+        by_strategy,
     )
-    return loops
+    return loops[:n]

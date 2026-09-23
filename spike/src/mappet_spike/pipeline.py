@@ -32,6 +32,7 @@ class EvalItem:
     compactness: float = 0.0
     area_m2: float = 0.0
     shape_like: bool = True
+    strategy: str = "out_back"
 
 
 def parse_origin(spec: str) -> tuple[float, float, str]:
@@ -122,6 +123,7 @@ def run_eval(
                     compactness=metrics["compactness"],
                     area_m2=metrics["area_m2"],
                     shape_like=shape_ok,
+                    strategy=getattr(loop, "strategy", "out_back"),
                 )
             )
 
@@ -180,7 +182,7 @@ def _render_html(
               <figcaption>
                 <strong>{html.escape(it.label_guess)}</strong>
                 <span class="score">{it.score:.3f}</span><br/>
-                <span class="meta">{html.escape(it.origin_label)} · {it.length_m/1000:.2f} km · C={it.compactness:.2f}</span>
+                <span class="meta">{html.escape(it.origin_label)} · {it.length_m/1000:.2f} km · C={it.compactness:.2f} · {html.escape(it.strategy)}</span>
               </figcaption>
             </figure>
             """
