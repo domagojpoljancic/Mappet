@@ -1,0 +1,39 @@
+[project]
+name = "mappet-spike"
+version = "0.1.0"
+description = "Phase 0 recognition spike for Mappet — OSM graph → loops → silhouettes → CLIP"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "networkx>=3.3",
+    "numpy>=2.0",
+    "osmnx>=2.0",
+    "pillow>=10.4",
+    "shapely>=2.0",
+]
+
+[project.optional-dependencies]
+clip = [
+    "open-clip-torch>=2.26",
+    "torch>=2.3",
+    "torchvision>=0.18",
+]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+mappet-spike = "mappet_spike.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.18,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

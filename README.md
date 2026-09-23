@@ -1,6 +1,6 @@
 # Mappet 🏃‍♀️✏️🗺️
 
-> ⚠️ **Just a random idea — nothing more.** This is an early, half-baked brainstorm, **very far from a product** (or a company, a commitment, or a plan anyone is executing). Nothing here has been built, tested, or validated. Treat everything below as a napkin sketch that may never happen.
+> ⚠️ **WIP — early spike in progress.** Docs are still speculative; Phase 0 recognition spike code lives under `spike/`. Nothing production-ready yet.
 
 > **Mappet** — a working name for the GPS doodle-route finder idea described here.
 
@@ -8,11 +8,7 @@
 
 ---
 
-## 🚧 Just notes — no application code, no active project
-
-This repository currently contains **rough idea notes only**. There is **no runnable app**, no team, no timeline — just some speculative "what if" writing. The notes are structured *as if* they were specs so they could, in theory, be handed to autonomous coding agents (Cursor **Auto mode**) — but nobody is doing that today, and this may never go anywhere.
-
-Start here:
+## Docs
 
 | Doc | What it is |
 |---|---|
@@ -33,11 +29,19 @@ Start here:
 | Development plan | ✅ Drafted |
 | Agent-ready backlog | ✅ Drafted |
 
+### Phase 0 spike (`spike/`)
+| Capability | Status |
+|---|---|
+| T0.1 OSM graph builder + disk cache + edge filter | ✅ Implemented (unit tests) |
+| T0.2 Candidate loop generator | ✅ Implemented (unit tests on synthetic grid) |
+| T0.3 Silhouette renderer | ✅ Implemented (deterministic PNG) |
+| T0.3 Local CLIP recognisability | ⏳ In progress (optional `[clip]` extra) |
+| T0.4 Human-eval HTML grid + FINDINGS.md | ⏳ In progress |
+
 ### Product (planned — not built)
 | Capability | Status |
 |---|---|
-| Phase 0 recognition spike | ⏳ TBD (build first — de-risks everything) |
-| Route Engine (Python/FastAPI): graph → loops → silhouette → recognise → rank | ⏳ TBD |
+| Route Engine (Python/FastAPI): graph → loops → silhouette → recognise → rank | ⏳ After Phase 0 go |
 | Frontend PWA (Next.js): GPS/pin, controls, results, detail | ⏳ TBD |
 | GPX export + share image | ⏳ TBD |
 | Strava OAuth + upload | 🔮 Fast-follow (Phase 2) |
@@ -70,16 +74,19 @@ The make-or-break risk is **recognition quality** — do random street loops act
 
 ---
 
-## How to build this with agents (Auto mode)
+## Quick start (Phase 0 spike)
 
-1. Pick a ticket from [`docs/BACKLOG.md`](docs/BACKLOG.md) (start with T0.1).
-2. Hand the agent that ticket + `PRD.md` + `ARCHITECTURE.md`.
-3. Prefer one ticket per agent run; require its acceptance criteria (build + tests) to pass.
-4. Work bottom-up: engine primitives → pipeline → API → frontend → polish.
-5. Keep these status tables current as tickets land.
+```bash
+cd spike
+uv sync --extra clip --extra dev
+uv run pytest
+uv run mappet-spike eval \
+  --origin 45.8150,15.9819,Zagreb \
+  --origin 52.5200,13.4050,Berlin \
+  --origin 51.5074,-0.1278,London \
+  --distance-km 5 -n 150 --out output/eval
+```
 
----
+Open `spike/output/eval/index.html`. See [`spike/README.md`](spike/README.md).
 
-## Quick start
-
-There is nothing to run yet. Once Phase 1 lands, this section will document `docker-compose up` for the web app + Route Engine, plus a credential-free local mode. Until then, read the docs above.
+There is no full app yet. Once Phase 1 lands, this section will document `docker-compose up` for the web app + Route Engine.
