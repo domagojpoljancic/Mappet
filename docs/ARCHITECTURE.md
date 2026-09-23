@@ -1,6 +1,6 @@
-# Architecture — Doodler
+# Architecture — Mappet
 
-This document describes the technical design of Doodler, with emphasis on the **route-discovery engine** (the hard, differentiating part). It is written to be actionable for autonomous coding agents.
+This document describes the technical design of Mappet, with emphasis on the **route-discovery engine** (the hard, differentiating part). It is written to be actionable for autonomous coding agents.
 
 > Read alongside `PRD.md` (what/why) and `DEVELOPMENT_PLAN.md` + `BACKLOG.md` (how/when).
 

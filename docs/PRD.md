@@ -1,6 +1,6 @@
-# Product Requirements Document — Doodler
+# Product Requirements Document — Mappet
 
-> **Working name:** _Doodler_ (a.k.a. "GPS doodle route finder"). The name is a placeholder and can change; every reference to "Doodler" below means this product.
+> **Name:** _Mappet_ (a.k.a. "GPS doodle route finder"). Every reference to "Mappet" below means this product.
 
 **Status:** Draft v1 — approved scope for MVP (discovery-only).
 **Owner:** Product (you).
@@ -10,9 +10,9 @@
 
 ## 1. One-liner
 
-**Doodler points at where you are and surfaces nearby running/walking loops whose shape, when traced on the map, looks like a recognisable object.**
+**Mappet points at where you are and surfaces nearby running/walking loops whose shape, when traced on the map, looks like a recognisable object.**
 
-It flips the "Strava art" workflow. Instead of spending hours manually planning a route that looks like a cat, you let Doodler scan the real street/path network around you and hand you a short list of loops that already resemble something — a duck, a heart, a key, a fish — ready to run and export.
+It flips the "Strava art" workflow. Instead of spending hours manually planning a route that looks like a cat, you let Mappet scan the real street/path network around you and hand you a short list of loops that already resemble something — a duck, a heart, a key, a fish — ready to run and export.
 
 ---
 
@@ -24,7 +24,7 @@ It flips the "Strava art" workflow. Instead of spending hours manually planning 
 - **Expert-only** — requires spatial imagination and patience.
 - **Location-locked** — a great idea in one city is useless in another.
 
-**Insight:** the street network already contains countless loops that *accidentally* look like things. Nobody has time to hunt for them. Doodler automates the hunt: it is a **discovery engine for serendipitous, recognisable route shapes**, personalised to your location and distance.
+**Insight:** the street network already contains countless loops that *accidentally* look like things. Nobody has time to hunt for them. Mappet automates the hunt: it is a **discovery engine for serendipitous, recognisable route shapes**, personalised to your location and distance.
 
 ---
 

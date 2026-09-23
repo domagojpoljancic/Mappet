@@ -1,8 +1,8 @@
-# Doodler 🏃‍♀️✏️🗺️
+# Mappet 🏃‍♀️✏️🗺️
 
-> **Working name — subject to change.** "Doodler" is a placeholder for the GPS doodle-route finder described here.
+> **Mappet** — the GPS doodle-route finder described here.
 
-**Doodler points at where you are and surfaces nearby running/walking loops whose shape, traced on the map, looks like a recognisable object** — a duck, a heart, a fish, a key. It flips the "Strava art" workflow: instead of spending hours planning a route that looks like something, Doodler scans the real street/path network around you and hands you a short list of loops that already resemble something, ready to run and export.
+**Mappet points at where you are and surfaces nearby running/walking loops whose shape, traced on the map, looks like a recognisable object** — a duck, a heart, a fish, a key. It flips the "Strava art" workflow: instead of spending hours planning a route that looks like something, Mappet scans the real street/path network around you and hands you a short list of loops that already resemble something, ready to run and export.
 
 ---
 

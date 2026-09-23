@@ -1,4 +1,4 @@
-# Development Plan — Doodler
+# Development Plan — Mappet
 
 A phased, agent-oriented plan. Each phase has a **goal**, an **exit criterion** (how you know it's done), and maps to tickets in `BACKLOG.md`. It is designed so each ticket can be handed to an autonomous agent (Cursor **Auto mode**) with minimal extra context.
 

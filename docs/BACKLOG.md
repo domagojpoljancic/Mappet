@@ -1,4 +1,4 @@
-# Backlog — Doodler (agent-ready tickets)
+# Backlog — Mappet (agent-ready tickets)
 
 Each ticket is scoped so an autonomous agent (Cursor **Auto mode**) can pick it up with just: this file's ticket + `PRD.md` + `ARCHITECTURE.md`. Every ticket has **context**, **tasks**, and **acceptance criteria** (the agent should not stop until AC pass, including build + tests).
 
