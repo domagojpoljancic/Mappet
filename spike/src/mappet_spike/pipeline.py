@@ -12,7 +12,12 @@ from typing import Any
 from mappet_spike.geometry import is_shape_like, loop_metrics
 from mappet_spike.graph import GraphPreferences, build_graph
 from mappet_spike.loops import generate_loops
-from mappet_spike.recognise import clip_available, score_silhouette
+from mappet_spike.recognise import (
+    SKETCH_VOCABULARY,
+    clip_available,
+    score_silhouette,
+    score_silhouette_ensemble,
+)
 from mappet_spike.silhouette import render_silhouette, silhouette_png_bytes
 
 logger = logging.getLogger(__name__)
@@ -56,6 +61,7 @@ def run_eval(
     require_shape_like: bool = True,
     filled: bool = False,
     stroke_width: int = 3,
+    recognition: str = "baseline",
 ) -> dict[str, Any]:
     out_dir = Path(out_dir)
     img_dir = out_dir / "silhouettes"
@@ -106,7 +112,12 @@ def run_eval(
 
             guess, score = "unscored", 0.0
             if use_clip:
-                result = score_silhouette(img)
+                if recognition == "ensemble":
+                    result = score_silhouette_ensemble(
+                        img, vocabulary=SKETCH_VOCABULARY
+                    )
+                else:
+                    result = score_silhouette(img)
                 guess, score = result.label_guess, result.score
 
             scored.append(
@@ -154,6 +165,7 @@ def run_eval(
         "n_candidates": n_candidates,
         "clip": use_clip,
         "require_shape_like": require_shape_like,
+        "recognition": recognition,
         "origins": origin_summaries,
         "items": [asdict(it) for it in items],
         "html": str(html_path),

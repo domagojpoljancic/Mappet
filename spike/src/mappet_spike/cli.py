@@ -84,6 +84,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
         require_shape_like=not args.no_shape_filter,
         filled=args.filled,
         stroke_width=args.stroke_width,
+        recognition=args.recognition,
     )
     print(json.dumps(report, indent=2))
     return 0
@@ -141,6 +142,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Render filled silhouettes instead of stroke outlines",
     )
     e.add_argument("--stroke-width", type=int, default=3)
+    e.add_argument(
+        "--recognition",
+        choices=["baseline", "ensemble"],
+        default="baseline",
+        help="CLIP scoring mode: baseline single prompt, or prompt-ensemble + sketch vocab",
+    )
     e.set_defaults(func=cmd_eval)
 
     return p
