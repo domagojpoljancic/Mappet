@@ -65,6 +65,7 @@ Eyeballing the top-ranked silhouettes (London “bicycle” 0.355, Zagreb “hor
 
 - **T0.5** Geometry-aware loop filters — ✅ done (see addendum).
 - **T0.6** Alternate generators (multi-waypoint + random-walk) — ✅ done (all three strategies now fill quotas on Zagreb).
+- **T0.6b** CLIP prompt/vocab/stroke tuning — ✅ done; **no meaningful gain**.
 - **T0.7** Vision-LLM captioning on top-N + side-by-side HTML with CLIP.
 - **T0.8** Re-run human eval; only then open Phase 1 (T1.1+).
 
@@ -105,6 +106,28 @@ Mixed strategies with reserved quotas:
 Shape-like after filter: **127 / 360**. Best CLIP still **~0.36**, labels still generic. All three strategies now contribute; recognition quality under local CLIP is **unchanged** (still conditional no-go).
 
 **Unchanged decision:** no MVP yet. Next high-leverage step remains **vision-LLM top-N** (needs API key).
+
+---
+
+## Addendum — CLIP prompt / render tuning
+
+Compared on 59 Zagreb shape-like loops (`scripts/tune_clip.py`):
+
+| Variant | mean | max | Dominant labels |
+|---|---:|---:|---|
+| baseline stroke3 | 0.314 | 0.346 | house, guitar, key |
+| thick stroke8 | 0.309 | 0.338 | key, guitar |
+| sketch vocab only | 0.263 | 0.297 | star, key, anchor |
+| **ensemble + sketch vocab** | **0.317** | 0.346 | house, anchor, boot |
+| ensemble + thick | 0.313 | 0.341 | anchor, boot |
+| invert B/W ensemble | 0.298 | 0.330 | house, boot |
+| filled ensemble | 0.311 | 0.360 | house, anchor |
+
+Best mean delta vs baseline: **+0.0025** (not meaningful). Local CLIP prompt/vocab/stroke tricks do **not** unlock recognisable doodles.
+
+Shipped: `--recognition ensemble` and `SKETCH_VOCABULARY` for optional use; default stays baseline.
+
+**Still blocked:** T0.7 vision-LLM (no API key in environment).
 
 ---
 
