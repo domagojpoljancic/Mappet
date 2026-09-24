@@ -131,6 +131,19 @@ Shipped: `--recognition ensemble` and `SKETCH_VOCABULARY` for optional use; defa
 
 ---
 
+## Overnight status (2026-09-24)
+
+Local Phase 0 levers exercised overnight:
+
+- Graph/cache/loops/silhouettes/CLIP pipeline ✅
+- Geometry filters ✅
+- Multi-strategy generators (out-back, multi-waypoint, random-walk) ✅
+- Filled/thick/invert renders + CLIP prompt ensemble ✅ — **no recognition gain**
+
+**Stopped inventing further local CLIP tweaks.** Conditional no-go stands. Resume when a vision API key is available for T0.7, or a human overrides the FINDINGS decision after eyeballing the eval grids.
+
+---
+
 ## Repro
 
 ```bash

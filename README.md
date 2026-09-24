@@ -40,7 +40,7 @@
 | T0.5b Filled silhouette render (`--filled`) | ✅ Done — does not help local CLIP |
 | T0.6 Alternate generators (multi-waypoint + random-walk) | ✅ Done — all three strategies fill quotas; recognition still no-go |
 | T0.6b CLIP prompt/vocab/stroke tuning | ✅ Done — no meaningful gain (`scripts/tune_clip.py`) |
-| T0.7 Vision-LLM top-N labeling | ⏳ Blocked on API key |
+| T0.7 Vision-LLM top-N labeling | ⏳ Blocked on API key — overnight local work paused |
 
 ### Product (planned — not built)
 | Capability | Status |
